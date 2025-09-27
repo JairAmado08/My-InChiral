@@ -49,11 +49,16 @@ def load_custom_css():
     }
     
     .subtitle {
-        color: #E2E8F0;
+        color: #FFFFFF;
         text-align: center;
         font-size: 1.2rem;
         margin-bottom: 2rem;
-        font-weight: 300;
+        font-weight: 400;
+        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        background: linear-gradient(45deg, #4FD1C7, #63B3ED);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.5));
     }
     
     /* Tarjetas de información */
