@@ -8,7 +8,8 @@
 - Generar automáticamente todos los **estereoisómeros posibles** (hasta 3 centros quirales).  
 - Descargar los resultados en formato **.smi**.  
 - Convertir las estructuras a **archivos XYZ** para visualización 3D.  
-- Interfaz moderna con **CSS personalizado** y ejemplos de uso.  
+- Interfaz moderna con **CSS personalizado** y ejemplos de uso.
+- Visualizar modelo 3D.
 
 ## 🧪 ¿Qué es la quiralidad?
 La **quiralidad** es una propiedad de ciertas moléculas cuya estructura no puede superponerse con su imagen especular, como sucede con las manos humanas.  
