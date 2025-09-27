@@ -548,7 +548,7 @@ def main():
             with st.spinner("🔄 Generando estereoisómeros..."):
                 isomeros, n_centros = generar_estereoisomeros(smiles_input)
         
-        # Tabs mejorados - SOLO AGREGUÉ LA CUARTA PESTAÑA
+        # Tabs mejorados
         tab1, tab2, tab3, tab4 = st.tabs(["📋 Lista Completa", "💾 Descargar SMI", "🧪 Convertir a XYZ", "🌐 Visualizar 3D"])
         
         if isomeros:
@@ -636,11 +636,11 @@ def main():
                 
                 st.markdown('</div>', unsafe_allow_html=True)
             
-            # NUEVA PESTAÑA 3D - SOLO ESTO ES NUEVO
+            # PESTAÑA 3D CON ETIQUETAS AGREGADAS
             with tab4:
                 st.markdown("""
                 <div class="info-card">
-                <h3 style='color: #2D3748; margin-top: 0;'>🌐 Visualización Molecular 3D</h3>
+                <h3 style='color: #2D3748; margin-top: 0;'>🌐 Visualización Molecular 3D con Etiquetas</h3>
                 """, unsafe_allow_html=True)
                 
                 # Selector de molécula
@@ -679,7 +679,7 @@ def main():
                                 x, y, z = float(parts[1]), float(parts[2]), float(parts[3])
                                 atoms_data.append([element, x, y, z])
                             
-                            # Generar HTML con Three.js para visualización 3D
+                            # Generar HTML con Three.js para visualización 3D CON ETIQUETAS
                             atoms_js = []
                             for i, (element, x, y, z) in enumerate(atoms_data):
                                 color_map = {
@@ -703,14 +703,17 @@ def main():
                                 })
                             
                             html_3d = f"""
-                            <div style="width: 100%; height: 600px; border: 2px solid #4FD1C7; border-radius: 15px; background: linear-gradient(135deg, #2D3748, #4A5568);">
+                            <div style="width: 100%; height: 700px; border: 2px solid #4FD1C7; border-radius: 15px; background: linear-gradient(135deg, #2D3748, #4A5568); position: relative;">
                                 <div id="molecule-3d" style="width: 100%; height: 100%;"></div>
+                                <div style="position: absolute; top: 10px; left: 10px; color: #4FD1C7; font-size: 14px; background: rgba(0,0,0,0.7); padding: 10px; border-radius: 8px;">
+                                    🖱️ Click y arrastra para rotar | 🎯 Scroll para zoom
+                                </div>
                             </div>
                             
                             <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
                             <script>
                             const scene = new THREE.Scene();
-                            const camera = new THREE.PerspectiveCamera(75, 800/600, 0.1, 1000);
+                            const camera = new THREE.PerspectiveCamera(75, 800/700, 0.1, 1000);
                             const renderer = new THREE.WebGLRenderer({{antialias: true, alpha: true}});
                             
                             const container = document.getElementById('molecule-3d');
@@ -718,50 +721,138 @@ def main():
                             renderer.setClearColor(0x000000, 0);
                             container.appendChild(renderer.domElement);
                             
+                            // Luces mejoradas
                             const ambientLight = new THREE.AmbientLight(0x404040, 0.6);
                             scene.add(ambientLight);
+                            
                             const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
                             directionalLight.position.set(1, 1, 1);
                             scene.add(directionalLight);
                             
+                            const pointLight = new THREE.PointLight(0x4FD1C7, 0.3, 100);
+                            pointLight.position.set(-10, 10, 10);
+                            scene.add(pointLight);
+                            
                             const atoms = {str(atoms_js).replace("'", '"')};
                             
+                            // Crear grupo para la molécula
+                            const moleculeGroup = new THREE.Group();
+                            
+                            // Calcular centro de la molécula para posicionar la etiqueta
+                            let centerX = 0, centerY = 0, centerZ = 0;
+                            atoms.forEach(atom => {{
+                                centerX += atom.x;
+                                centerY += atom.y;
+                                centerZ += atom.z;
+                            }});
+                            centerX /= atoms.length;
+                            centerY /= atoms.length;
+                            centerZ /= atoms.length;
+                            
+                            // Encontrar el punto más bajo para posicionar la etiqueta
+                            let minY = Math.min(...atoms.map(atom => atom.y));
+                            
                             atoms.forEach((atom, index) => {{
+                                // Crear esferas para átomos
                                 const geometry = new THREE.SphereGeometry(atom.size, 32, 32);
-                                const material = new THREE.MeshPhongMaterial({{color: atom.color}});
+                                const material = new THREE.MeshPhongMaterial({{
+                                    color: atom.color,
+                                    shininess: 100,
+                                    specular: 0x222222
+                                }});
                                 const sphere = new THREE.Mesh(geometry, material);
-                                
                                 sphere.position.set(atom.x, atom.y, atom.z);
-                                scene.add(sphere);
+                                moleculeGroup.add(sphere);
                                 
+                                // Etiquetas de átomos (símbolos químicos)
                                 const canvas = document.createElement('canvas');
                                 const context = canvas.getContext('2d');
-                                canvas.width = 64;
-                                canvas.height = 64;
-                                context.font = '32px Arial';
+                                canvas.width = 128;
+                                canvas.height = 128;
+                                context.font = 'bold 48px Arial';
                                 context.fillStyle = 'white';
+                                context.strokeStyle = 'black';
+                                context.lineWidth = 3;
                                 context.textAlign = 'center';
-                                context.fillText(atom.element, 32, 40);
+                                context.textBaseline = 'middle';
+                                
+                                // Texto con borde
+                                context.strokeText(atom.element, 64, 64);
+                                context.fillText(atom.element, 64, 64);
                                 
                                 const texture = new THREE.CanvasTexture(canvas);
-                                const spriteMaterial = new THREE.SpriteMaterial({{map: texture}});
+                                const spriteMaterial = new THREE.SpriteMaterial({{
+                                    map: texture,
+                                    transparent: true
+                                }});
                                 const sprite = new THREE.Sprite(spriteMaterial);
-                                sprite.position.set(atom.x, atom.y + atom.size + 0.5, atom.z);
-                                sprite.scale.set(1, 1, 1);
-                                scene.add(sprite);
+                                sprite.position.set(atom.x, atom.y + atom.size + 1, atom.z);
+                                sprite.scale.set(1.5, 1.5, 1.5);
+                                moleculeGroup.add(sprite);
                             }});
-
-                            camera.position.z = 15;
                             
+                            // ETIQUETA PRINCIPAL DE LA MOLÉCULA
+                            const molCanvas = document.createElement('canvas');
+                            const molContext = molCanvas.getContext('2d');
+                            molCanvas.width = 512;
+                            molCanvas.height = 128;
+                            
+                            // Fondo semi-transparente para la etiqueta
+                            molContext.fillStyle = 'rgba(45, 55, 72, 0.9)';
+                            molContext.fillRect(0, 0, 512, 128);
+                            
+                            // Borde de la etiqueta
+                            molContext.strokeStyle = '#4FD1C7';
+                            molContext.lineWidth = 3;
+                            molContext.strokeRect(3, 3, 506, 122);
+                            
+                            // Texto del título
+                            molContext.font = 'bold 24px Arial';
+                            molContext.fillStyle = '#4FD1C7';
+                            molContext.textAlign = 'center';
+                            molContext.fillText(`Estereoisómero {selected_idx + 1}`, 256, 35);
+                            
+                            // Texto del SMILES
+                            molContext.font = '18px monospace';
+                            molContext.fillStyle = '#FFFFFF';
+                            molContext.fillText(`{isomeros[selected_idx]}`, 256, 65);
+                            
+                            // Información adicional
+                            molContext.font = '14px Arial';
+                            molContext.fillStyle = '#63B3ED';
+                            molContext.fillText(`Átomos: {len(atoms_data)} | Elementos: {len(set([atom[0] for atom in atoms_data]))}`, 256, 95);
+                            
+                            const molTexture = new THREE.CanvasTexture(molCanvas);
+                            const molSpriteMaterial = new THREE.SpriteMaterial({{
+                                map: molTexture,
+                                transparent: true
+                            }});
+                            const molSprite = new THREE.Sprite(molSpriteMaterial);
+                            
+                            // Posicionar la etiqueta debajo de la molécula
+                            molSprite.position.set(centerX, minY - 4, centerZ);
+                            molSprite.scale.set(8, 2, 1);
+                            moleculeGroup.add(molSprite);
+                            
+                            // Añadir grupo a la escena
+                            scene.add(moleculeGroup);
+                            
+                            // Posición inicial de la cámara
+                            camera.position.z = 20;
+                            camera.position.y = 2;
+                            
+                            // Variables para interacción
                             let mouseX = 0, mouseY = 0;
                             let targetRotationX = 0, targetRotationY = 0;
                             let rotationX = 0, rotationY = 0;
                             let isMouseDown = false;
                             
+                            // Event listeners para interacción
                             container.addEventListener('mousedown', (event) => {{
                                 isMouseDown = true;
                                 mouseX = event.clientX;
                                 mouseY = event.clientY;
+                                container.style.cursor = 'grabbing';
                             }});
                             
                             container.addEventListener('mousemove', (event) => {{
@@ -775,28 +866,45 @@ def main():
                             
                             container.addEventListener('mouseup', () => {{
                                 isMouseDown = false;
+                                container.style.cursor = 'grab';
+                            }});
+                            
+                            container.addEventListener('mouseleave', () => {{
+                                isMouseDown = false;
+                                container.style.cursor = 'grab';
                             }});
                             
                             container.addEventListener('wheel', (event) => {{
                                 event.preventDefault();
-                                camera.position.z += event.deltaY * 0.01;
-                                camera.position.z = Math.max(5, Math.min(50, camera.position.z));
+                                camera.position.z += event.deltaY * 0.02;
+                                camera.position.z = Math.max(5, Math.min(100, camera.position.z));
                             }});
                             
+                            // Estilo inicial del cursor
+                            container.style.cursor = 'grab';
+                            
+                            // Función de animación
                             function animate() {{
                                 requestAnimationFrame(animate);
                                 
+                                // Rotación suave
                                 rotationX += (targetRotationX - rotationX) * 0.1;
                                 rotationY += (targetRotationY - rotationY) * 0.1;
                                 
-                                scene.rotation.x = rotationX;
-                                scene.rotation.y = rotationY;
+                                moleculeGroup.rotation.x = rotationX;
+                                moleculeGroup.rotation.y = rotationY;
+                                
+                                // Rotación automática suave cuando no hay interacción
+                                if (!isMouseDown) {{
+                                    targetRotationY += 0.005;
+                                }}
                                 
                                 renderer.render(scene, camera);
                             }}
                             
                             animate();
                             
+                            // Redimensionar cuando cambia el tamaño
                             window.addEventListener('resize', () => {{
                                 camera.aspect = container.clientWidth / container.clientHeight;
                                 camera.updateProjectionMatrix();
@@ -805,10 +913,12 @@ def main():
                             </script>
                             """
                             
-                            st.components.v1.html(html_3d, height=650)
+                            st.components.v1.html(html_3d, height=750)
                             
-                            # Información adicional
-                            col1, col2, col3 = st.columns(3)
+                            # Información adicional con más detalles
+                            st.markdown("### 📊 Información Detallada de la Molécula")
+                            
+                            col1, col2, col3, col4 = st.columns(4)
                             
                             with col1:
                                 st.metric("Total de átomos", num_atoms)
@@ -822,45 +932,95 @@ def main():
                                 h_count = elements.count('H')
                                 st.metric("Átomos de H", h_count)
                             
-                            # Mostrar composición
-                            st.markdown("### 📈 Composición Atómica")
-                            elements = [atom[0] for atom in atoms_data]
+                            with col4:
+                                heavy_atoms = num_atoms - h_count
+                                st.metric("Átomos pesados", heavy_atoms)
+                            
+                            # Mostrar composición detallada
+                            st.markdown("### 📈 Composición Atómica Detallada")
+                            
                             composition = {}
                             for elem in elements:
                                 composition[elem] = composition.get(elem, 0) + 1
                             
-                            composition_text = " | ".join([f"{elem}: {count}" for elem, count in sorted(composition.items())])
-                            st.info(f"**Fórmula molecular:** {composition_text}")
+                            # Crear columnas para mostrar la composición
+                            cols = st.columns(len(composition))
+                            for i, (elem, count) in enumerate(sorted(composition.items())):
+                                with cols[i]:
+                                    # Colores para diferentes elementos
+                                    element_colors = {
+                                        'H': '#FFFFFF', 'C': '#404040', 'O': '#FF0000',
+                                        'N': '#0000FF', 'S': '#FFFF00', 'P': '#FFA500',
+                                        'F': '#00FF00', 'Cl': '#00FF00', 'Br': '#A52A2A'
+                                    }
+                                    color = element_colors.get(elem, '#808080')
+                                    
+                                    st.markdown(f"""
+                                    <div style='text-align: center; padding: 1rem; background: linear-gradient(135deg, rgba(79, 209, 199, 0.1), rgba(99, 179, 237, 0.1)); border-radius: 10px; border: 1px solid rgba(79, 209, 199, 0.3);'>
+                                        <div style='font-size: 2rem; color: {color}; font-weight: bold; text-shadow: 1px 1px 2px rgba(0,0,0,0.5);'>{elem}</div>
+                                        <div style='color: #2D3748; font-weight: bold;'>{count}</div>
+                                    </div>
+                                    """, unsafe_allow_html=True)
+                            
+                            # Fórmula molecular
+                            formula_parts = []
+                            for elem in ['C', 'H', 'N', 'O', 'S', 'P', 'F', 'Cl', 'Br']:
+                                if elem in composition:
+                                    count = composition[elem]
+                                    if count == 1:
+                                        formula_parts.append(elem)
+                                    else:
+                                        formula_parts.append(f"{elem}₍{count}₎")
+                            
+                            # Añadir elementos restantes
+                            for elem in sorted(composition.keys()):
+                                if elem not in ['C', 'H', 'N', 'O', 'S', 'P', 'F', 'Cl', 'Br']:
+                                    count = composition[elem]
+                                    if count == 1:
+                                        formula_parts.append(elem)
+                                    else:
+                                        formula_parts.append(f"{elem}₍{count}₎")
+                            
+                            formula = "".join(formula_parts)
+                            st.info(f"**Fórmula molecular:** {formula}")
+                            
+                            # Información del estereoisómero
+                            st.markdown("### 🧪 Información del Estereoisómero")
+                            col1, col2 = st.columns(2)
+                            
+                            with col1:
+                                st.markdown(f"""
+                                **Número de isómero:** {selected_idx + 1} de {len(isomeros)}
+                                
+                                **SMILES original:** `{smiles_input}`
+                                
+                                **SMILES del isómero:** `{isomeros[selected_idx]}`
+                                """)
+                            
+                            with col2:
+                                # Detectar diferencias entre el SMILES original y el isómero
+                                diferencias = []
+                                for i, (orig, iso) in enumerate(zip(smiles_input, isomeros[selected_idx])):
+                                    if orig != iso:
+                                        diferencias.append(f"Posición {i}: '{orig}' → '{iso}'")
+                                
+                                if diferencias:
+                                    st.markdown("**Cambios estereoquímicos:**")
+                                    for diff in diferencias[:3]:  # Mostrar máximo 3 diferencias
+                                        st.markdown(f"• {diff}")
+                                else:
+                                    st.markdown("**Sin cambios estereoquímicos detectados**")
                             
                             # Opción de descarga del XYZ individual
                             st.download_button(
                                 label=f"📥 Descargar XYZ - Isómero {selected_idx + 1}",
                                 data=xyz_content,
                                 file_name=f"isomero_{selected_idx + 1}.xyz",
-                                mime="text/plain"
+                                mime="text/plain",
+                                help="Descarga las coordenadas 3D de este estereoisómero específico"
                             )
                             
                         else:
                             st.error(f"❌ {mensaje}")
                 
                 st.markdown('</div>', unsafe_allow_html=True)
-                
-        else:
-            with tab4:
-                st.info("💡 Genera estereoisómeros primero para acceder a la visualización 3D")
-            st.info("💡 Ingresa un SMILES con centros quirales especificados (@ o @@) para generar estereoisómeros")
-    
-    # Footer mejorado
-    st.markdown("""
-    <div class="footer">
-        <div style='font-size: 2rem; margin-bottom: 1rem;'>🧬</div>
-        <h3 style='color: #4FD1C7; margin: 0.5rem 0;'>INCHIRAL</h3>
-        <p style='margin: 0.5rem 0; opacity: 0.8;'>Universidad Científica del Sur</p>
-        <p style='margin: 0; font-size: 0.9rem; opacity: 0.7;'>
-            Generador Avanzado de Estereoisómeros | Desarrollado con Streamlit y RDKit
-        </p>
-    </div>
-    """, unsafe_allow_html=True)
-
-if __name__ == "__main__":
-    main()
