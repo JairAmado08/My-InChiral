@@ -28,10 +28,6 @@ Esto da lugar a **enantiómeros**, que aunque químicamente similares, pueden te
 3. Generar y explorar los **estereoisómeros** posibles.  
 4. Descargar resultados en `.smi` o convertirlos a `.xyz` para uso en programas de modelado 3D.  
 
-## 📜 Licencia
-Este proyecto está bajo la licencia **MIT**.  
-Consulta el archivo [LICENSE](LICENSE) para más información.
-
 ### 📑 Posibles licencias para Inchiral
 
 | **Licencia** | **Justificación** |
