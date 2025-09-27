@@ -755,7 +755,7 @@ def main():
                             const molCanvas = document.createElement('canvas');
                             const molContext = molCanvas.getContext('2d');
                             molCanvas.width = 256;
-                            molCanvas.height = 64;
+                            molCanvas.height = 120;
                             molContext.font = '18px Arial';
                             molContext.fillStyle = '#4FD1C7';
                             molContext.textAlign = 'center';
