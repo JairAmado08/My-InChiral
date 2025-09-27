@@ -387,17 +387,6 @@ def main():
             unsafe_allow_html=True
         )
         
-        # Fallback si no carga la imagen local
-        try:
-            st.image("imagenes1/inchiral final.png", width=0)  # Imagen invisible para verificar si existe
-        except:
-            st.markdown("""
-            <div class="fallback-logo">
-                <span class="emoji">🧬</span>
-                <h2>INCHIRAL</h2>
-            </div>
-            """, unsafe_allow_html=True)
-        
         st.markdown("---")
         
         st.markdown("""
