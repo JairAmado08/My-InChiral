@@ -431,11 +431,22 @@ def main():
             }
             </style>
             <div class="sidebar-logo">
-                <img src="https://raw.githubusercontent.com/JairAmado08/My-InChiral/main/imagenes1/inchiralucsur.png" alt="Inchiral Logo">
+                <img src="imagenes1/inchiral final.png" alt="Inchiral Logo">
             </div>
             """,
             unsafe_allow_html=True
         )
+        
+        # Fallback si no carga la imagen local
+        try:
+            st.image("imagenes1/inchiral final.png", width=0)  # Imagen invisible para verificar si existe
+        except:
+            st.markdown("""
+            <div class="fallback-logo">
+                <span class="emoji">🧬</span>
+                <h2>INCHIRAL</h2>
+            </div>
+            """, unsafe_allow_html=True)
         
         st.markdown("---")
         
@@ -549,7 +560,7 @@ def main():
                 isomeros, n_centros = generar_estereoisomeros(smiles_input)
         
         # Tabs mejorados
-        tab1, tab2, tab3 = st.tabs(["📋 Lista Completa", "💾 Descargar SMI", "🧪 Convertir a XYZ"])
+        tab1, tab2, tab3, tab4 = st.tabs(["📋 Lista Completa", "💾 Descargar SMI", "🧪 Convertir a XYZ", "🌐 Visualizar 3D"])
         
         if isomeros:
             with tab1:
@@ -634,9 +645,152 @@ def main():
                             primer_archivo = list(archivos_xyz.values())[0]
                             st.code(primer_archivo, language="text")
                 
+            with tab4:
+                st.markdown("""
+                <div class="info-card">
+                <h3 style='color: #2D3748; margin-top: 0;'>🌐 Visualización Molecular 3D</h3>
+                """, unsafe_allow_html=True)
+                
+                if len(isomeros) > 0:
+                    # Selector de molécula
+                    col1, col2 = st.columns([2, 1])
+                    
+                    with col1:
+                        selected_idx = st.selectbox(
+                            "Selecciona un estereoisómero para visualizar:",
+                            range(len(isomeros)),
+                            format_func=lambda x: f"Isómero {x+1}: {isomeros[x]}"
+                        )
+                    
+                    with col2:
+                        st.markdown(f"""
+                        <div style='text-align: center; padding: 1rem; background: rgba(79, 209, 199, 0.1); border-radius: 10px; margin-top: 1.5rem;'>
+                        <strong>SMILES Seleccionado:</strong><br>
+                        <code>{isomeros[selected_idx]}</code>
+                        </div>
+                        """, unsafe_allow_html=True)
+                    
+                    if st.button("🚀 Generar Visualización 3D", type="primary", key="viz_3d"):
+                        with st.spinner("Generando estructura 3D..."):
+                            xyz_content, mensaje = smiles_to_xyz(isomeros[selected_idx], selected_idx + 1)
+                            
+                            if xyz_content:
+                                st.success(f"✅ Estructura 3D generada correctamente")
+                                
+                                # Parsear coordenadas XYZ
+                                lines = xyz_content.strip().split('\n')
+                                num_atoms = int(lines[0])
+                                atoms_data = []
+                                
+                                for i in range(2, 2 + num_atoms):
+                                    parts = lines[i].split()
+                                    element = parts[0]
+                                    x, y, z = float(parts[1]), float(parts[2]), float(parts[3])
+                                    atoms_data.append([element, x, y, z])
+                                
+                                # Crear visualización con Plotly
+                                st.markdown("### 📊 Visualización Interactiva 3D")
+                                
+                                # Preparar datos para Plotly
+                                elements = [atom[0] for atom in atoms_data]
+                                x_coords = [atom[1] for atom in atoms_data]
+                                y_coords = [atom[2] for atom in atoms_data]
+                                z_coords = [atom[3] for atom in atoms_data]
+                                
+                                # Colores por elemento
+                                color_map = {
+                                    'C': '#404040', 'H': '#FFFFFF', 'O': '#FF0000', 
+                                    'N': '#0000FF', 'S': '#FFFF00', 'P': '#FFA500',
+                                    'F': '#00FF00', 'Cl': '#00FF00', 'Br': '#A52A2A'
+                                }
+                                colors = [color_map.get(elem, '#808080') for elem in elements]
+                                
+                                # Tamaños por elemento
+                                size_map = {
+                                    'H': 8, 'C': 12, 'N': 12, 'O': 12, 'S': 15, 'P': 15,
+                                    'F': 10, 'Cl': 15, 'Br': 18
+                                }
+                                sizes = [size_map.get(elem, 10) for elem in elements]
+                                
+                                # Crear gráfico 3D con Plotly
+                                import plotly.graph_objects as go
+                                
+                                fig = go.Figure(data=[go.Scatter3d(
+                                    x=x_coords,
+                                    y=y_coords, 
+                                    z=z_coords,
+                                    mode='markers+text',
+                                    marker=dict(
+                                        size=sizes,
+                                        color=colors,
+                                        line=dict(width=2, color='DarkSlateGrey')
+                                    ),
+                                    text=elements,
+                                    textposition="middle center",
+                                    textfont=dict(size=10, color="black"),
+                                    hovertemplate='<b>%{text}</b><br>' +
+                                                'X: %{x:.3f}<br>' +
+                                                'Y: %{y:.3f}<br>' +
+                                                'Z: %{z:.3f}<extra></extra>'
+                                )])
+                                
+                                fig.update_layout(
+                                    title=f'Estructura 3D - Isómero {selected_idx + 1}',
+                                    scene=dict(
+                                        xaxis_title='X (Å)',
+                                        yaxis_title='Y (Å)', 
+                                        zaxis_title='Z (Å)',
+                                        bgcolor="rgba(255,255,255,0.1)",
+                                        xaxis=dict(backgroundcolor="rgba(255,255,255,0.1)"),
+                                        yaxis=dict(backgroundcolor="rgba(255,255,255,0.1)"),
+                                        zaxis=dict(backgroundcolor="rgba(255,255,255,0.1)")
+                                    ),
+                                    width=800,
+                                    height=600,
+                                    paper_bgcolor='rgba(0,0,0,0)',
+                                    plot_bgcolor='rgba(0,0,0,0)'
+                                )
+                                
+                                st.plotly_chart(fig, use_container_width=True)
+                                
+                                # Información adicional
+                                col1, col2, col3 = st.columns(3)
+                                
+                                with col1:
+                                    st.metric("Total de átomos", num_atoms)
+                                
+                                with col2:
+                                    unique_elements = list(set(elements))
+                                    st.metric("Elementos únicos", len(unique_elements))
+                                
+                                with col3:
+                                    h_count = elements.count('H')
+                                    st.metric("Átomos de H", h_count)
+                                
+                                # Mostrar composición
+                                st.markdown("### 📈 Composición Atómica")
+                                composition = {}
+                                for elem in elements:
+                                    composition[elem] = composition.get(elem, 0) + 1
+                                
+                                composition_text = " | ".join([f"{elem}: {count}" for elem, count in sorted(composition.items())])
+                                st.info(f"**Fórmula molecular:** {composition_text}")
+                                
+                                # Opción de descarga del XYZ individual
+                                st.download_button(
+                                    label=f"📥 Descargar XYZ - Isómero {selected_idx + 1}",
+                                    data=xyz_content,
+                                    file_name=f"isomero_{selected_idx + 1}.xyz",
+                                    mime="text/plain"
+                                )
+                                
+                            else:
+                                st.error(f"❌ {mensaje}")
+                                
+                else:
+                    st.warning("⚠️ No hay isómeros disponibles para visualizar")
+                
                 st.markdown('</div>', unsafe_allow_html=True)
-        else:
-            st.info("💡 Ingresa un SMILES con centros quirales especificados (@ o @@) para generar estereoisómeros")
     
     # Footer mejorado
     st.markdown("""
