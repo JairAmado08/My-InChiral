@@ -548,8 +548,8 @@ def main():
             with st.spinner("🔄 Generando estereoisómeros..."):
                 isomeros, n_centros = generar_estereoisomeros(smiles_input)
         
-        # Tabs mejorados
-        tab1, tab2, tab3 = st.tabs(["📋 Lista Completa", "💾 Descargar SMI", "🧪 Convertir a XYZ"])
+        # Tabs mejorados - SOLO AGREGUÉ LA CUARTA PESTAÑA
+        tab1, tab2, tab3, tab4 = st.tabs(["📋 Lista Completa", "💾 Descargar SMI", "🧪 Convertir a XYZ", "🌐 Visualizar 3D"])
         
         if isomeros:
             with tab1:
@@ -635,7 +635,282 @@ def main():
                             st.code(primer_archivo, language="text")
                 
                 st.markdown('</div>', unsafe_allow_html=True)
+            
+            # NUEVA PESTAÑA 3D - VISUALIZACIÓN DE TODOS LOS ESTEREOISÓMEROS
+            with tab4:
+                st.markdown("""
+                <div class="info-card">
+                <h3 style='color: #2D3748; margin-top: 0;'>🌐 Visualización 3D de Estereoisómeros</h3>
+                """, unsafe_allow_html=True)
+                
+                st.info(f"📊 **{len(isomeros)} estereoisómeros** detectados. Se generarán las estructuras 3D de todos.")
+                
+                if st.button("🚀 Generar Visualización 3D de Todos los Estereoisómeros", type="primary", key="viz_all_3d"):
+                    progress_bar = st.progress(0)
+                    status_text = st.empty()
+                    
+                    all_structures_3d = []
+                    
+                    for i, smiles in enumerate(isomeros):
+                        progress = (i + 1) / len(isomeros)
+                        progress_bar.progress(progress)
+                        status_text.text(f"Procesando estereoisómero {i+1}/{len(isomeros)}: {smiles}")
+                        
+                        xyz_content, mensaje = smiles_to_xyz(smiles, i+1)
+                        
+                        if xyz_content:
+                            # Parsear coordenadas XYZ
+                            lines = xyz_content.strip().split('\n')
+                            num_atoms = int(lines[0])
+                            atoms_data = []
+                            
+                            for j in range(2, 2 + num_atoms):
+                                parts = lines[j].split()
+                                element = parts[0]
+                                x, y, z = float(parts[1]), float(parts[2]), float(parts[3])
+                                atoms_data.append([element, x, y, z])
+                            
+                            all_structures_3d.append({
+                                'index': i,
+                                'smiles': smiles,
+                                'atoms': atoms_data,
+                                'num_atoms': num_atoms
+                            })
+                    
+                    progress_bar.progress(1.0)
+                    status_text.text("✅ Todas las estructuras 3D generadas!")
+                    
+                    if all_structures_3d:
+                        st.success(f"✅ {len(all_structures_3d)} estructuras 3D generadas correctamente")
+                        
+                        # Crear visualización con todos los estereoisómeros
+                        st.markdown("### 📊 Comparación Visual de Estereoisómeros")
+                        
+                        # Generar datos para Three.js con todas las estructuras
+                        all_molecules_js = []
+                        
+                        for struct in all_structures_3d:
+                            atoms_js = []
+                            for element, x, y, z in struct['atoms']:
+                                color_map = {
+                                    'C': 0x404040, 'H': 0xFFFFFF, 'O': 0xFF0000, 
+                                    'N': 0x0000FF, 'S': 0xFFFF00, 'P': 0xFFA500,
+                                    'F': 0x00FF00, 'Cl': 0x00FF00, 'Br': 0xA52A2A
+                                }
+                                size_map = {
+                                    'H': 0.5, 'C': 0.7, 'N': 0.65, 'O': 0.6, 'S': 1.0, 'P': 1.1,
+                                    'F': 0.5, 'Cl': 0.9, 'Br': 1.2
+                                }
+                                
+                                color = color_map.get(element, 0x808080)
+                                size = size_map.get(element, 0.6)
+                                
+                                # Desplazar cada molécula en el espacio para separarlas
+                                offset_x = (struct['index'] % 3) * 15  # 3 moléculas por fila
+                                offset_z = (struct['index'] // 3) * 15  # Nuevas filas cada 3 moléculas
+                                
+                                atoms_js.append({
+                                    'element': element,
+                                    'x': x + offset_x, 
+                                    'y': y, 
+                                    'z': z + offset_z,
+                                    'color': color,
+                                    'size': size
+                                })
+                            
+                            all_molecules_js.append({
+                                'index': struct['index'],
+                                'smiles': struct['smiles'],
+                                'atoms': atoms_js
+                            })
+                        
+                        html_3d_all = f"""
+                        <div style="width: 100%; height: 700px; border: 2px solid #4FD1C7; border-radius: 15px; background: linear-gradient(135deg, #2D3748, #4A5568);">
+                            <div id="all-molecules-3d" style="width: 100%; height: 100%;"></div>
+                        </div>
+                        
+                        <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+                        <script>
+                        const scene = new THREE.Scene();
+                        const camera = new THREE.PerspectiveCamera(75, 800/700, 0.1, 1000);
+                        const renderer = new THREE.WebGLRenderer({{antialias: true, alpha: true}});
+                        
+                        const container = document.getElementById('all-molecules-3d');
+                        renderer.setSize(container.clientWidth, container.clientHeight);
+                        renderer.setClearColor(0x000000, 0);
+                        container.appendChild(renderer.domElement);
+                        
+                        const ambientLight = new THREE.AmbientLight(0x404040, 0.6);
+                        scene.add(ambientLight);
+                        const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+                        directionalLight.position.set(10, 10, 10);
+                        scene.add(directionalLight);
+                        
+                        const molecules = {str(all_molecules_js).replace("'", '"')};
+                        
+                        molecules.forEach((molecule) => {{
+                            // Crear un grupo para cada molécula
+                            const moleculeGroup = new THREE.Group();
+                            
+                            molecule.atoms.forEach((atom) => {{
+                                const geometry = new THREE.SphereGeometry(atom.size, 16, 16);
+                                const material = new THREE.MeshPhongMaterial({{color: atom.color}});
+                                const sphere = new THREE.Mesh(geometry, material);
+                                
+                                sphere.position.set(atom.x, atom.y, atom.z);
+                                moleculeGroup.add(sphere);
+                                
+                                // Etiqueta del elemento
+                                const canvas = document.createElement('canvas');
+                                const context = canvas.getContext('2d');
+                                canvas.width = 64;
+                                canvas.height = 64;
+                                context.font = '24px Arial';
+                                context.fillStyle = 'white';
+                                context.textAlign = 'center';
+                                context.fillText(atom.element, 32, 36);
+                                
+                                const texture = new THREE.CanvasTexture(canvas);
+                                const spriteMaterial = new THREE.SpriteMaterial({{map: texture}});
+                                const sprite = new THREE.Sprite(spriteMaterial);
+                                sprite.position.set(atom.x, atom.y + atom.size + 0.5, atom.z);
+                                sprite.scale.set(0.8, 0.8, 0.8);
+                                moleculeGroup.add(sprite);
+                            }});
+                            
+                            // Etiqueta de la molécula
+                            const molCanvas = document.createElement('canvas');
+                            const molContext = molCanvas.getContext('2d');
+                            molCanvas.width = 256;
+                            molCanvas.height = 64;
+                            molContext.font = '18px Arial';
+                            molContext.fillStyle = '#4FD1C7';
+                            molContext.textAlign = 'center';
+                            molContext.fillText(`Isómero ${{molecule.index + 1}}`, 128, 25);
+                            molContext.fillText(molecule.smiles, 128, 45);
+                            
+                            const molTexture = new THREE.CanvasTexture(molCanvas);
+                            const molSpriteMaterial = new THREE.SpriteMaterial({{map: molTexture}});
+                            const molSprite = new THREE.Sprite(molSpriteMaterial);
+                            
+                            const avgX = molecule.atoms.reduce((sum, atom) => sum + atom.x, 0) / molecule.atoms.length;
+                            const avgZ = molecule.atoms.reduce((sum, atom) => sum + atom.z, 0) / molecule.atoms.length;
+                            molSprite.position.set(avgX, -8, avgZ);
+                            molSprite.scale.set(4, 1, 1);
+                            moleculeGroup.add(molSprite);
+                            
+                            scene.add(moleculeGroup);
+                        }});
+                        
+                        // Posicionar cámara para ver todas las moléculas
+                        camera.position.set(15, 10, 30);
+                        camera.lookAt(0, 0, 0);
+                        
+                        let mouseX = 0, mouseY = 0;
+                        let targetRotationX = 0, targetRotationY = 0;
+                        let rotationX = 0, rotationY = 0;
+                        let isMouseDown = false;
+                        
+                        container.addEventListener('mousedown', (event) => {{
+                            isMouseDown = true;
+                            mouseX = event.clientX;
+                            mouseY = event.clientY;
+                        }});
+                        
+                        container.addEventListener('mousemove', (event) => {{
+                            if (isMouseDown) {{
+                                targetRotationY += (event.clientX - mouseX) * 0.005;
+                                targetRotationX += (event.clientY - mouseY) * 0.005;
+                                mouseX = event.clientX;
+                                mouseY = event.clientY;
+                            }}
+                        }});
+                        
+                        container.addEventListener('mouseup', () => {{
+                            isMouseDown = false;
+                        }});
+                        
+                        container.addEventListener('wheel', (event) => {{
+                            event.preventDefault();
+                            const zoomFactor = event.deltaY * 0.1;
+                            camera.position.multiplyScalar(1 + zoomFactor * 0.01);
+                            
+                            // Limitar zoom
+                            const distance = camera.position.length();
+                            if (distance < 10) camera.position.multiplyScalar(10/distance);
+                            if (distance > 100) camera.position.multiplyScalar(100/distance);
+                        }});
+                        
+                        function animate() {{
+                            requestAnimationFrame(animate);
+                            
+                            rotationX += (targetRotationX - rotationX) * 0.05;
+                            rotationY += (targetRotationY - rotationY) * 0.05;
+                            
+                            scene.rotation.x = rotationX;
+                            scene.rotation.y = rotationY;
+                            
+                            renderer.render(scene, camera);
+                        }}
+                        
+                        animate();
+                        
+                        window.addEventListener('resize', () => {{
+                            camera.aspect = container.clientWidth / container.clientHeight;
+                            camera.updateProjectionMatrix();
+                            renderer.setSize(container.clientWidth, container.clientHeight);
+                        }});
+                        </script>
+                        """
+                        
+                        st.components.v1.html(html_3d_all, height=750)
+                        
+                        # Información de todos los estereoisómeros
+                        st.markdown("### 📊 Resumen de Estereoisómeros")
+                        
+                        cols = st.columns(min(len(all_structures_3d), 4))
+                        
+                        for i, struct in enumerate(all_structures_3d):
+                            with cols[i % 4]:
+                                st.markdown(f"""
+                                <div style='text-align: center; padding: 1rem; background: rgba(79, 209, 199, 0.1); border-radius: 10px; margin: 0.5rem 0;'>
+                                <strong>Isómero {struct['index'] + 1}</strong><br>
+                                <code>{struct['smiles']}</code><br>
+                                <small>{struct['num_atoms']} átomos</small>
+                                </div>
+                                """, unsafe_allow_html=True)
+                        
+                        # Información general
+                        st.markdown("### 📈 Estadísticas Generales")
+                        col1, col2, col3, col4 = st.columns(4)
+                        
+                        with col1:
+                            st.metric("Total de isómeros", len(all_structures_3d))
+                        
+                        with col2:
+                            avg_atoms = sum(s['num_atoms'] for s in all_structures_3d) / len(all_structures_3d)
+                            st.metric("Promedio de átomos", f"{avg_atoms:.1f}")
+                        
+                        with col3:
+                            all_elements = set()
+                            for struct in all_structures_3d:
+                                for atom in struct['atoms']:
+                                    all_elements.add(atom[0])
+                            st.metric("Elementos únicos", len(all_elements))
+                        
+                        with col4:
+                            st.metric("Centros quirales", n_centros)
+                        
+                        st.info("💡 **Instrucciones:** Arrastra para rotar la vista, usa la rueda del mouse para hacer zoom. Cada molécula muestra su número de isómero y estructura SMILES.")
+                    
+                    else:
+                        st.error("❌ No se pudieron generar las estructuras 3D")
+                
+                st.markdown('</div>', unsafe_allow_html=True)
+                
         else:
+            with tab4:
+                st.info("💡 Genera estereoisómeros primero para acceder a la visualización 3D")
             st.info("💡 Ingresa un SMILES con centros quirales especificados (@ o @@) para generar estereoisómeros")
     
     # Footer mejorado
