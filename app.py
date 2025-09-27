@@ -577,6 +577,10 @@ def main():
                         col2.code(f"{i+1}. {isomero}", language="text")
                 
                 st.markdown('</div>', unsafe_allow_html=True)
+        else:
+            with tab4:
+                st.info("💡 Genera estereoisómeros primero para acceder a la visualización 3D")
+            st.info("💡 Ingresa un SMILES con centros quirales especificados (@ o @@) para generar estereoisómeros")
             
             with tab2:
                 st.markdown("""
@@ -712,46 +716,149 @@ def main():
                                 }
                                 sizes = [size_map.get(elem, 10) for elem in elements]
                                 
-                                # Crear gráfico 3D con Plotly
-                                import plotly.graph_objects as go
+                                # Crear visualización 3D con HTML y Three.js
+                                st.markdown("### 📊 Visualización Interactiva 3D")
                                 
-                                fig = go.Figure(data=[go.Scatter3d(
-                                    x=x_coords,
-                                    y=y_coords, 
-                                    z=z_coords,
-                                    mode='markers+text',
-                                    marker=dict(
-                                        size=sizes,
-                                        color=colors,
-                                        line=dict(width=2, color='DarkSlateGrey')
-                                    ),
-                                    text=elements,
-                                    textposition="middle center",
-                                    textfont=dict(size=10, color="black"),
-                                    hovertemplate='<b>%{text}</b><br>' +
-                                                'X: %{x:.3f}<br>' +
-                                                'Y: %{y:.3f}<br>' +
-                                                'Z: %{z:.3f}<extra></extra>'
-                                )])
+                                # Generar HTML con Three.js para visualización 3D
+                                atoms_js = []
+                                for i, (element, x, y, z) in enumerate(atoms_data):
+                                    color_map = {
+                                        'C': 0x404040, 'H': 0xFFFFFF, 'O': 0xFF0000, 
+                                        'N': 0x0000FF, 'S': 0xFFFF00, 'P': 0xFFA500,
+                                        'F': 0x00FF00, 'Cl': 0x00FF00, 'Br': 0xA52A2A
+                                    }
+                                    size_map = {
+                                        'H': 0.5, 'C': 0.7, 'N': 0.65, 'O': 0.6, 'S': 1.0, 'P': 1.1,
+                                        'F': 0.5, 'Cl': 0.9, 'Br': 1.2
+                                    }
+                                    
+                                    color = color_map.get(element, 0x808080)
+                                    size = size_map.get(element, 0.6)
+                                    
+                                    atoms_js.append({
+                                        'element': element,
+                                        'x': x, 'y': y, 'z': z,
+                                        'color': color,
+                                        'size': size
+                                    })
                                 
-                                fig.update_layout(
-                                    title=f'Estructura 3D - Isómero {selected_idx + 1}',
-                                    scene=dict(
-                                        xaxis_title='X (Å)',
-                                        yaxis_title='Y (Å)', 
-                                        zaxis_title='Z (Å)',
-                                        bgcolor="rgba(255,255,255,0.1)",
-                                        xaxis=dict(backgroundcolor="rgba(255,255,255,0.1)"),
-                                        yaxis=dict(backgroundcolor="rgba(255,255,255,0.1)"),
-                                        zaxis=dict(backgroundcolor="rgba(255,255,255,0.1)")
-                                    ),
-                                    width=800,
-                                    height=600,
-                                    paper_bgcolor='rgba(0,0,0,0)',
-                                    plot_bgcolor='rgba(0,0,0,0)'
-                                )
+                                html_3d = f"""
+                                <div style="width: 100%; height: 600px; border: 2px solid #4FD1C7; border-radius: 15px; background: linear-gradient(135deg, #2D3748, #4A5568);">
+                                    <div id="molecule-3d" style="width: 100%; height: 100%;"></div>
+                                </div>
                                 
-                                st.plotly_chart(fig, use_container_width=True)
+                                <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+                                <script>
+                                // Configuración de la escena
+                                const scene = new THREE.Scene();
+                                const camera = new THREE.PerspectiveCamera(75, 800/600, 0.1, 1000);
+                                const renderer = new THREE.WebGLRenderer({{antialias: true, alpha: true}});
+                                
+                                const container = document.getElementById('molecule-3d');
+                                renderer.setSize(container.clientWidth, container.clientHeight);
+                                renderer.setClearColor(0x000000, 0);
+                                container.appendChild(renderer.domElement);
+                                
+                                // Agregar luces
+                                const ambientLight = new THREE.AmbientLight(0x404040, 0.6);
+                                scene.add(ambientLight);
+                                const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+                                directionalLight.position.set(1, 1, 1);
+                                scene.add(directionalLight);
+                                
+                                // Crear átomos
+                                const atoms = {str(atoms_js).replace("'", '"')};
+                                const atomMeshes = [];
+                                
+                                atoms.forEach((atom, index) => {{
+                                    const geometry = new THREE.SphereGeometry(atom.size, 32, 32);
+                                    const material = new THREE.MeshPhongMaterial({{color: atom.color}});
+                                    const sphere = new THREE.Mesh(geometry, material);
+                                    
+                                    sphere.position.set(atom.x, atom.y, atom.z);
+                                    scene.add(sphere);
+                                    atomMeshes.push(sphere);
+                                    
+                                    // Agregar etiqueta
+                                    const canvas = document.createElement('canvas');
+                                    const context = canvas.getContext('2d');
+                                    canvas.width = 64;
+                                    canvas.height = 64;
+                                    context.font = '32px Arial';
+                                    context.fillStyle = 'white';
+                                    context.textAlign = 'center';
+                                    context.fillText(atom.element, 32, 40);
+                                    
+                                    const texture = new THREE.CanvasTexture(canvas);
+                                    const spriteMaterial = new THREE.SpriteMaterial({{map: texture}});
+                                    const sprite = new THREE.Sprite(spriteMaterial);
+                                    sprite.position.set(atom.x, atom.y + atom.size + 0.5, atom.z);
+                                    sprite.scale.set(1, 1, 1);
+                                    scene.add(sprite);
+                                }});
+                                
+                                // Posicionar cámara
+                                camera.position.z = 15;
+                                
+                                // Variables de control
+                                let mouseX = 0, mouseY = 0;
+                                let targetRotationX = 0, targetRotationY = 0;
+                                let rotationX = 0, rotationY = 0;
+                                
+                                // Control del mouse
+                                let isMouseDown = false;
+                                
+                                container.addEventListener('mousedown', (event) => {{
+                                    isMouseDown = true;
+                                    mouseX = event.clientX;
+                                    mouseY = event.clientY;
+                                }});
+                                
+                                container.addEventListener('mousemove', (event) => {{
+                                    if (isMouseDown) {{
+                                        targetRotationY += (event.clientX - mouseX) * 0.01;
+                                        targetRotationX += (event.clientY - mouseY) * 0.01;
+                                        mouseX = event.clientX;
+                                        mouseY = event.clientY;
+                                    }}
+                                }});
+                                
+                                container.addEventListener('mouseup', () => {{
+                                    isMouseDown = false;
+                                }});
+                                
+                                // Control de zoom con rueda del mouse
+                                container.addEventListener('wheel', (event) => {{
+                                    event.preventDefault();
+                                    camera.position.z += event.deltaY * 0.01;
+                                    camera.position.z = Math.max(5, Math.min(50, camera.position.z));
+                                }});
+                                
+                                // Loop de renderizado
+                                function animate() {{
+                                    requestAnimationFrame(animate);
+                                    
+                                    rotationX += (targetRotationX - rotationX) * 0.1;
+                                    rotationY += (targetRotationY - rotationY) * 0.1;
+                                    
+                                    scene.rotation.x = rotationX;
+                                    scene.rotation.y = rotationY;
+                                    
+                                    renderer.render(scene, camera);
+                                }}
+                                
+                                animate();
+                                
+                                // Redimensionar con la ventana
+                                window.addEventListener('resize', () => {{
+                                    camera.aspect = container.clientWidth / container.clientHeight;
+                                    camera.updateProjectionMatrix();
+                                    renderer.setSize(container.clientWidth, container.clientHeight);
+                                }});
+                                </script>
+                                """
+                                
+                                st.components.v1.html(html_3d, height=650)
                                 
                                 # Información adicional
                                 col1, col2, col3 = st.columns(3)
