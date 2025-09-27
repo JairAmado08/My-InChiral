@@ -755,8 +755,8 @@ def main():
                             const molCanvas = document.createElement('canvas');
                             const molContext = molCanvas.getContext('2d');
                             molCanvas.width = 256;
-                            molCanvas.height = 120;
-                            molContext.font = '18px Arial';
+                            molCanvas.height = 64;
+                            molContext.font = '40px Arial';
                             molContext.fillStyle = '#4FD1C7';
                             molContext.textAlign = 'center';
                             molContext.fillText('Isómero {selected_idx + 1}', 128, 25);
