@@ -431,22 +431,11 @@ def main():
             }
             </style>
             <div class="sidebar-logo">
-                <img src="imagenes1/inchiral final.png" alt="Inchiral Logo">
+                <img src="https://raw.githubusercontent.com/JairAmado08/My-InChiral/main/imagenes1/inchiralucsur.png" alt="Inchiral Logo">
             </div>
             """,
             unsafe_allow_html=True
         )
-        
-        # Fallback si no carga la imagen local
-        try:
-            st.image("imagenes1/inchiral final.png", width=0)  # Imagen invisible para verificar si existe
-        except:
-            st.markdown("""
-            <div class="fallback-logo">
-                <span class="emoji">🧬</span>
-                <h2>INCHIRAL</h2>
-            </div>
-            """, unsafe_allow_html=True)
         
         st.markdown("---")
         
@@ -559,7 +548,7 @@ def main():
             with st.spinner("🔄 Generando estereoisómeros..."):
                 isomeros, n_centros = generar_estereoisomeros(smiles_input)
         
-        # Tabs mejorados
+        # Tabs mejorados - SOLO AGREGUÉ LA CUARTA PESTAÑA
         tab1, tab2, tab3, tab4 = st.tabs(["📋 Lista Completa", "💾 Descargar SMI", "🧪 Convertir a XYZ", "🌐 Visualizar 3D"])
         
         if isomeros:
@@ -577,10 +566,6 @@ def main():
                         col2.code(f"{i+1}. {isomero}", language="text")
                 
                 st.markdown('</div>', unsafe_allow_html=True)
-        else:
-            with tab4:
-                st.info("💡 Genera estereoisómeros primero para acceder a la visualización 3D")
-            st.info("💡 Ingresa un SMILES con centros quirales especificados (@ o @@) para generar estereoisómeros")
             
             with tab2:
                 st.markdown("""
@@ -649,255 +634,221 @@ def main():
                             primer_archivo = list(archivos_xyz.values())[0]
                             st.code(primer_archivo, language="text")
                 
+                st.markdown('</div>', unsafe_allow_html=True)
+            
+            # NUEVA PESTAÑA 3D - SOLO ESTO ES NUEVO
             with tab4:
                 st.markdown("""
                 <div class="info-card">
                 <h3 style='color: #2D3748; margin-top: 0;'>🌐 Visualización Molecular 3D</h3>
                 """, unsafe_allow_html=True)
                 
-                if len(isomeros) > 0:
-                    # Selector de molécula
-                    col1, col2 = st.columns([2, 1])
-                    
-                    with col1:
-                        selected_idx = st.selectbox(
-                            "Selecciona un estereoisómero para visualizar:",
-                            range(len(isomeros)),
-                            format_func=lambda x: f"Isómero {x+1}: {isomeros[x]}"
-                        )
-                    
-                    with col2:
-                        st.markdown(f"""
-                        <div style='text-align: center; padding: 1rem; background: rgba(79, 209, 199, 0.1); border-radius: 10px; margin-top: 1.5rem;'>
-                        <strong>SMILES Seleccionado:</strong><br>
-                        <code>{isomeros[selected_idx]}</code>
-                        </div>
-                        """, unsafe_allow_html=True)
-                    
-                    if st.button("🚀 Generar Visualización 3D", type="primary", key="viz_3d"):
-                        with st.spinner("Generando estructura 3D..."):
-                            xyz_content, mensaje = smiles_to_xyz(isomeros[selected_idx], selected_idx + 1)
+                # Selector de molécula
+                col1, col2 = st.columns([2, 1])
+                
+                with col1:
+                    selected_idx = st.selectbox(
+                        "Selecciona un estereoisómero para visualizar:",
+                        range(len(isomeros)),
+                        format_func=lambda x: f"Isómero {x+1}: {isomeros[x]}"
+                    )
+                
+                with col2:
+                    st.markdown(f"""
+                    <div style='text-align: center; padding: 1rem; background: rgba(79, 209, 199, 0.1); border-radius: 10px; margin-top: 1.5rem;'>
+                    <strong>SMILES Seleccionado:</strong><br>
+                    <code>{isomeros[selected_idx]}</code>
+                    </div>
+                    """, unsafe_allow_html=True)
+                
+                if st.button("🚀 Generar Visualización 3D", type="primary", key="viz_3d"):
+                    with st.spinner("Generando estructura 3D..."):
+                        xyz_content, mensaje = smiles_to_xyz(isomeros[selected_idx], selected_idx + 1)
+                        
+                        if xyz_content:
+                            st.success("✅ Estructura 3D generada correctamente")
                             
-                            if xyz_content:
-                                st.success(f"✅ Estructura 3D generada correctamente")
-                                
-                                # Parsear coordenadas XYZ
-                                lines = xyz_content.strip().split('\n')
-                                num_atoms = int(lines[0])
-                                atoms_data = []
-                                
-                                for i in range(2, 2 + num_atoms):
-                                    parts = lines[i].split()
-                                    element = parts[0]
-                                    x, y, z = float(parts[1]), float(parts[2]), float(parts[3])
-                                    atoms_data.append([element, x, y, z])
-                                
-                                # Crear visualización con Plotly
-                                st.markdown("### 📊 Visualización Interactiva 3D")
-                                
-                                # Preparar datos para Plotly
-                                elements = [atom[0] for atom in atoms_data]
-                                x_coords = [atom[1] for atom in atoms_data]
-                                y_coords = [atom[2] for atom in atoms_data]
-                                z_coords = [atom[3] for atom in atoms_data]
-                                
-                                # Colores por elemento
+                            # Parsear coordenadas XYZ
+                            lines = xyz_content.strip().split('\n')
+                            num_atoms = int(lines[0])
+                            atoms_data = []
+                            
+                            for i in range(2, 2 + num_atoms):
+                                parts = lines[i].split()
+                                element = parts[0]
+                                x, y, z = float(parts[1]), float(parts[2]), float(parts[3])
+                                atoms_data.append([element, x, y, z])
+                            
+                            # Generar HTML con Three.js para visualización 3D
+                            atoms_js = []
+                            for i, (element, x, y, z) in enumerate(atoms_data):
                                 color_map = {
-                                    'C': '#404040', 'H': '#FFFFFF', 'O': '#FF0000', 
-                                    'N': '#0000FF', 'S': '#FFFF00', 'P': '#FFA500',
-                                    'F': '#00FF00', 'Cl': '#00FF00', 'Br': '#A52A2A'
+                                    'C': 0x404040, 'H': 0xFFFFFF, 'O': 0xFF0000, 
+                                    'N': 0x0000FF, 'S': 0xFFFF00, 'P': 0xFFA500,
+                                    'F': 0x00FF00, 'Cl': 0x00FF00, 'Br': 0xA52A2A
                                 }
-                                colors = [color_map.get(elem, '#808080') for elem in elements]
-                                
-                                # Tamaños por elemento
                                 size_map = {
-                                    'H': 8, 'C': 12, 'N': 12, 'O': 12, 'S': 15, 'P': 15,
-                                    'F': 10, 'Cl': 15, 'Br': 18
+                                    'H': 0.5, 'C': 0.7, 'N': 0.65, 'O': 0.6, 'S': 1.0, 'P': 1.1,
+                                    'F': 0.5, 'Cl': 0.9, 'Br': 1.2
                                 }
-                                sizes = [size_map.get(elem, 10) for elem in elements]
                                 
-                                # Crear visualización 3D con HTML y Three.js
-                                st.markdown("### 📊 Visualización Interactiva 3D")
+                                color = color_map.get(element, 0x808080)
+                                size = size_map.get(element, 0.6)
                                 
-                                # Generar HTML con Three.js para visualización 3D
-                                atoms_js = []
-                                for i, (element, x, y, z) in enumerate(atoms_data):
-                                    color_map = {
-                                        'C': 0x404040, 'H': 0xFFFFFF, 'O': 0xFF0000, 
-                                        'N': 0x0000FF, 'S': 0xFFFF00, 'P': 0xFFA500,
-                                        'F': 0x00FF00, 'Cl': 0x00FF00, 'Br': 0xA52A2A
-                                    }
-                                    size_map = {
-                                        'H': 0.5, 'C': 0.7, 'N': 0.65, 'O': 0.6, 'S': 1.0, 'P': 1.1,
-                                        'F': 0.5, 'Cl': 0.9, 'Br': 1.2
-                                    }
-                                    
-                                    color = color_map.get(element, 0x808080)
-                                    size = size_map.get(element, 0.6)
-                                    
-                                    atoms_js.append({
-                                        'element': element,
-                                        'x': x, 'y': y, 'z': z,
-                                        'color': color,
-                                        'size': size
-                                    })
+                                atoms_js.append({
+                                    'element': element,
+                                    'x': x, 'y': y, 'z': z,
+                                    'color': color,
+                                    'size': size
+                                })
+                            
+                            html_3d = f"""
+                            <div style="width: 100%; height: 600px; border: 2px solid #4FD1C7; border-radius: 15px; background: linear-gradient(135deg, #2D3748, #4A5568);">
+                                <div id="molecule-3d" style="width: 100%; height: 100%;"></div>
+                            </div>
+                            
+                            <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+                            <script>
+                            const scene = new THREE.Scene();
+                            const camera = new THREE.PerspectiveCamera(75, 800/600, 0.1, 1000);
+                            const renderer = new THREE.WebGLRenderer({{antialias: true, alpha: true}});
+                            
+                            const container = document.getElementById('molecule-3d');
+                            renderer.setSize(container.clientWidth, container.clientHeight);
+                            renderer.setClearColor(0x000000, 0);
+                            container.appendChild(renderer.domElement);
+                            
+                            const ambientLight = new THREE.AmbientLight(0x404040, 0.6);
+                            scene.add(ambientLight);
+                            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+                            directionalLight.position.set(1, 1, 1);
+                            scene.add(directionalLight);
+                            
+                            const atoms = {str(atoms_js).replace("'", '"')};
+                            
+                            atoms.forEach((atom, index) => {{
+                                const geometry = new THREE.SphereGeometry(atom.size, 32, 32);
+                                const material = new THREE.MeshPhongMaterial({{color: atom.color}});
+                                const sphere = new THREE.Mesh(geometry, material);
                                 
-                                html_3d = f"""
-                                <div style="width: 100%; height: 600px; border: 2px solid #4FD1C7; border-radius: 15px; background: linear-gradient(135deg, #2D3748, #4A5568);">
-                                    <div id="molecule-3d" style="width: 100%; height: 100%;"></div>
-                                </div>
+                                sphere.position.set(atom.x, atom.y, atom.z);
+                                scene.add(sphere);
                                 
-                                <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-                                <script>
-                                // Configuración de la escena
-                                const scene = new THREE.Scene();
-                                const camera = new THREE.PerspectiveCamera(75, 800/600, 0.1, 1000);
-                                const renderer = new THREE.WebGLRenderer({{antialias: true, alpha: true}});
+                                const canvas = document.createElement('canvas');
+                                const context = canvas.getContext('2d');
+                                canvas.width = 64;
+                                canvas.height = 64;
+                                context.font = '32px Arial';
+                                context.fillStyle = 'white';
+                                context.textAlign = 'center';
+                                context.fillText(atom.element, 32, 40);
                                 
-                                const container = document.getElementById('molecule-3d');
-                                renderer.setSize(container.clientWidth, container.clientHeight);
-                                renderer.setClearColor(0x000000, 0);
-                                container.appendChild(renderer.domElement);
-                                
-                                // Agregar luces
-                                const ambientLight = new THREE.AmbientLight(0x404040, 0.6);
-                                scene.add(ambientLight);
-                                const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
-                                directionalLight.position.set(1, 1, 1);
-                                scene.add(directionalLight);
-                                
-                                // Crear átomos
-                                const atoms = {str(atoms_js).replace("'", '"')};
-                                const atomMeshes = [];
-                                
-                                atoms.forEach((atom, index) => {{
-                                    const geometry = new THREE.SphereGeometry(atom.size, 32, 32);
-                                    const material = new THREE.MeshPhongMaterial({{color: atom.color}});
-                                    const sphere = new THREE.Mesh(geometry, material);
-                                    
-                                    sphere.position.set(atom.x, atom.y, atom.z);
-                                    scene.add(sphere);
-                                    atomMeshes.push(sphere);
-                                    
-                                    // Agregar etiqueta
-                                    const canvas = document.createElement('canvas');
-                                    const context = canvas.getContext('2d');
-                                    canvas.width = 64;
-                                    canvas.height = 64;
-                                    context.font = '32px Arial';
-                                    context.fillStyle = 'white';
-                                    context.textAlign = 'center';
-                                    context.fillText(atom.element, 32, 40);
-                                    
-                                    const texture = new THREE.CanvasTexture(canvas);
-                                    const spriteMaterial = new THREE.SpriteMaterial({{map: texture}});
-                                    const sprite = new THREE.Sprite(spriteMaterial);
-                                    sprite.position.set(atom.x, atom.y + atom.size + 0.5, atom.z);
-                                    sprite.scale.set(1, 1, 1);
-                                    scene.add(sprite);
-                                }});
-                                
-                                // Posicionar cámara
-                                camera.position.z = 15;
-                                
-                                // Variables de control
-                                let mouseX = 0, mouseY = 0;
-                                let targetRotationX = 0, targetRotationY = 0;
-                                let rotationX = 0, rotationY = 0;
-                                
-                                // Control del mouse
-                                let isMouseDown = false;
-                                
-                                container.addEventListener('mousedown', (event) => {{
-                                    isMouseDown = true;
+                                const texture = new THREE.CanvasTexture(canvas);
+                                const spriteMaterial = new THREE.SpriteMaterial({{map: texture}});
+                                const sprite = new THREE.Sprite(spriteMaterial);
+                                sprite.position.set(atom.x, atom.y + atom.size + 0.5, atom.z);
+                                sprite.scale.set(1, 1, 1);
+                                scene.add(sprite);
+                            }});
+                            
+                            camera.position.z = 15;
+                            
+                            let mouseX = 0, mouseY = 0;
+                            let targetRotationX = 0, targetRotationY = 0;
+                            let rotationX = 0, rotationY = 0;
+                            let isMouseDown = false;
+                            
+                            container.addEventListener('mousedown', (event) => {{
+                                isMouseDown = true;
+                                mouseX = event.clientX;
+                                mouseY = event.clientY;
+                            }});
+                            
+                            container.addEventListener('mousemove', (event) => {{
+                                if (isMouseDown) {{
+                                    targetRotationY += (event.clientX - mouseX) * 0.01;
+                                    targetRotationX += (event.clientY - mouseY) * 0.01;
                                     mouseX = event.clientX;
                                     mouseY = event.clientY;
-                                }});
-                                
-                                container.addEventListener('mousemove', (event) => {{
-                                    if (isMouseDown) {{
-                                        targetRotationY += (event.clientX - mouseX) * 0.01;
-                                        targetRotationX += (event.clientY - mouseY) * 0.01;
-                                        mouseX = event.clientX;
-                                        mouseY = event.clientY;
-                                    }}
-                                }});
-                                
-                                container.addEventListener('mouseup', () => {{
-                                    isMouseDown = false;
-                                }});
-                                
-                                // Control de zoom con rueda del mouse
-                                container.addEventListener('wheel', (event) => {{
-                                    event.preventDefault();
-                                    camera.position.z += event.deltaY * 0.01;
-                                    camera.position.z = Math.max(5, Math.min(50, camera.position.z));
-                                }});
-                                
-                                // Loop de renderizado
-                                function animate() {{
-                                    requestAnimationFrame(animate);
-                                    
-                                    rotationX += (targetRotationX - rotationX) * 0.1;
-                                    rotationY += (targetRotationY - rotationY) * 0.1;
-                                    
-                                    scene.rotation.x = rotationX;
-                                    scene.rotation.y = rotationY;
-                                    
-                                    renderer.render(scene, camera);
                                 }}
+                            }});
+                            
+                            container.addEventListener('mouseup', () => {{
+                                isMouseDown = false;
+                            }});
+                            
+                            container.addEventListener('wheel', (event) => {{
+                                event.preventDefault();
+                                camera.position.z += event.deltaY * 0.01;
+                                camera.position.z = Math.max(5, Math.min(50, camera.position.z));
+                            }});
+                            
+                            function animate() {{
+                                requestAnimationFrame(animate);
                                 
-                                animate();
+                                rotationX += (targetRotationX - rotationX) * 0.1;
+                                rotationY += (targetRotationY - rotationY) * 0.1;
                                 
-                                // Redimensionar con la ventana
-                                window.addEventListener('resize', () => {{
-                                    camera.aspect = container.clientWidth / container.clientHeight;
-                                    camera.updateProjectionMatrix();
-                                    renderer.setSize(container.clientWidth, container.clientHeight);
-                                }});
-                                </script>
-                                """
+                                scene.rotation.x = rotationX;
+                                scene.rotation.y = rotationY;
                                 
-                                st.components.v1.html(html_3d, height=650)
-                                
-                                # Información adicional
-                                col1, col2, col3 = st.columns(3)
-                                
-                                with col1:
-                                    st.metric("Total de átomos", num_atoms)
-                                
-                                with col2:
-                                    unique_elements = list(set(elements))
-                                    st.metric("Elementos únicos", len(unique_elements))
-                                
-                                with col3:
-                                    h_count = elements.count('H')
-                                    st.metric("Átomos de H", h_count)
-                                
-                                # Mostrar composición
-                                st.markdown("### 📈 Composición Atómica")
-                                composition = {}
-                                for elem in elements:
-                                    composition[elem] = composition.get(elem, 0) + 1
-                                
-                                composition_text = " | ".join([f"{elem}: {count}" for elem, count in sorted(composition.items())])
-                                st.info(f"**Fórmula molecular:** {composition_text}")
-                                
-                                # Opción de descarga del XYZ individual
-                                st.download_button(
-                                    label=f"📥 Descargar XYZ - Isómero {selected_idx + 1}",
-                                    data=xyz_content,
-                                    file_name=f"isomero_{selected_idx + 1}.xyz",
-                                    mime="text/plain"
-                                )
-                                
-                            else:
-                                st.error(f"❌ {mensaje}")
-                                
-                else:
-                    st.warning("⚠️ No hay isómeros disponibles para visualizar")
+                                renderer.render(scene, camera);
+                            }}
+                            
+                            animate();
+                            
+                            window.addEventListener('resize', () => {{
+                                camera.aspect = container.clientWidth / container.clientHeight;
+                                camera.updateProjectionMatrix();
+                                renderer.setSize(container.clientWidth, container.clientHeight);
+                            }});
+                            </script>
+                            """
+                            
+                            st.components.v1.html(html_3d, height=650)
+                            
+                            # Información adicional
+                            col1, col2, col3 = st.columns(3)
+                            
+                            with col1:
+                                st.metric("Total de átomos", num_atoms)
+                            
+                            with col2:
+                                elements = [atom[0] for atom in atoms_data]
+                                unique_elements = list(set(elements))
+                                st.metric("Elementos únicos", len(unique_elements))
+                            
+                            with col3:
+                                h_count = elements.count('H')
+                                st.metric("Átomos de H", h_count)
+                            
+                            # Mostrar composición
+                            st.markdown("### 📈 Composición Atómica")
+                            elements = [atom[0] for atom in atoms_data]
+                            composition = {}
+                            for elem in elements:
+                                composition[elem] = composition.get(elem, 0) + 1
+                            
+                            composition_text = " | ".join([f"{elem}: {count}" for elem, count in sorted(composition.items())])
+                            st.info(f"**Fórmula molecular:** {composition_text}")
+                            
+                            # Opción de descarga del XYZ individual
+                            st.download_button(
+                                label=f"📥 Descargar XYZ - Isómero {selected_idx + 1}",
+                                data=xyz_content,
+                                file_name=f"isomero_{selected_idx + 1}.xyz",
+                                mime="text/plain"
+                            )
+                            
+                        else:
+                            st.error(f"❌ {mensaje}")
                 
                 st.markdown('</div>', unsafe_allow_html=True)
+                
+        else:
+            with tab4:
+                st.info("💡 Genera estereoisómeros primero para acceder a la visualización 3D")
+            st.info("💡 Ingresa un SMILES con centros quirales especificados (@ o @@) para generar estereoisómeros")
     
     # Footer mejorado
     st.markdown("""
