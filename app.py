@@ -338,13 +338,63 @@ def main():
     with st.sidebar:
         st.markdown('<div class="sidebar-content">', unsafe_allow_html=True)
         
+        # Logo con animación
+        st.markdown(
+            """
+            <style>
+            .sidebar-logo {
+                display: flex;
+                justify-content: center;
+                width: 100%;
+                margin-bottom: 1rem;
+                animation: float 3s ease-in-out infinite;
+            }
+            .sidebar-logo img {
+                max-width: 150px;
+                height: auto;
+                border-radius: 10px;
+                box-shadow: 0 5px 15px rgba(79, 209, 199, 0.3);
+                transition: transform 0.3s ease;
+            }
+            .sidebar-logo img:hover {
+                transform: scale(1.05);
+                box-shadow: 0 8px 25px rgba(79, 209, 199, 0.5);
+            }
+            @keyframes float {
+                0%, 100% { transform: translateY(0px); }
+                50% { transform: translateY(-10px); }
+            }
+            .fallback-logo {
+                text-align: center;
+                padding: 2rem;
+                animation: float 3s ease-in-out infinite;
+            }
+            .fallback-logo .emoji {
+                font-size: 4rem;
+                margin-bottom: 1rem;
+                display: block;
+            }
+            .fallback-logo h2 {
+                color: #4FD1C7;
+                margin: 0;
+                text-shadow: 0 0 10px rgba(79, 209, 199, 0.5);
+            }
+            </style>
+            <div class="sidebar-logo">
+                <img src="imagenes1/inchiral final.png" alt="Inchiral Logo">
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+        
+        # Fallback si no carga la imagen local
         try:
-            st.image("imagenes1/inchiralucsur.png", width=200)
+            st.image("imagenes1/inchiral final.png", width=0)  # Imagen invisible para verificar si existe
         except:
             st.markdown("""
-            <div style='text-align: center; padding: 2rem;'>
-                <div style='font-size: 4rem; margin-bottom: 1rem;'>🧬</div>
-                <h2 style='color: #4FD1C7; margin: 0;'>INCHIRAL</h2>
+            <div class="fallback-logo">
+                <span class="emoji">🧬</span>
+                <h2>INCHIRAL</h2>
             </div>
             """, unsafe_allow_html=True)
         
