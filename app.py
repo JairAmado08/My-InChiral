@@ -339,7 +339,7 @@ def main():
         st.markdown('<div class="sidebar-content">', unsafe_allow_html=True)
         
         try:
-            st.image("imagenes1/inchiral final.png", width=200)
+            st.image("imagenes1/inchiralucsur.png", width=200)
         except:
             st.markdown("""
             <div style='text-align: center; padding: 2rem;'>
