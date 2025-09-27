@@ -761,17 +761,17 @@ def main():
                                 molContext.textAlign = 'center';
                                 molContext.fillText(`Isómero ${{molecule.index + 1}}`, 128, 25);
                                 molContext.fillText(molecule.smiles, 128, 45);
-                                
+                                    
                                 const molTexture = new THREE.CanvasTexture(molCanvas);
                                 const molSpriteMaterial = new THREE.SpriteMaterial({{map: molTexture}});
                                 const molSprite = new THREE.Sprite(molSpriteMaterial);
-                                
+                                    
                                 const avgX = molecule.atoms.reduce((sum, atom) => sum + atom.x, 0) / molecule.atoms.length;
                                 const avgZ = molecule.atoms.reduce((sum, atom) => sum + atom.z, 0) / molecule.atoms.length;
                                 molSprite.position.set(avgX, -8, avgZ);
                                 molSprite.scale.set(4, 1, 1);
                                 moleculeGroup.add(molSprite);
-                                
+                                    
                                 scene.add(moleculeGroup);
                             }});
                         
