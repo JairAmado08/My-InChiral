@@ -750,7 +750,31 @@ def main():
                                 sprite.scale.set(1, 1, 1);
                                 scene.add(sprite);
                             }});
-                            
+
+                            // Etiqueta de la molécula
+                                const molCanvas = document.createElement('canvas');
+                                const molContext = molCanvas.getContext('2d');
+                                molCanvas.width = 256;
+                                molCanvas.height = 64;
+                                molContext.font = '18px Arial';
+                                molContext.fillStyle = '#4FD1C7';
+                                molContext.textAlign = 'center';
+                                molContext.fillText(`Isómero ${{molecule.index + 1}}`, 128, 25);
+                                molContext.fillText(molecule.smiles, 128, 45);
+                                
+                                const molTexture = new THREE.CanvasTexture(molCanvas);
+                                const molSpriteMaterial = new THREE.SpriteMaterial({{map: molTexture}});
+                                const molSprite = new THREE.Sprite(molSpriteMaterial);
+                                
+                                const avgX = molecule.atoms.reduce((sum, atom) => sum + atom.x, 0) / molecule.atoms.length;
+                                const avgZ = molecule.atoms.reduce((sum, atom) => sum + atom.z, 0) / molecule.atoms.length;
+                                molSprite.position.set(avgX, -8, avgZ);
+                                molSprite.scale.set(4, 1, 1);
+                                moleculeGroup.add(molSprite);
+                                
+                                scene.add(moleculeGroup);
+                            }});
+                        
                             camera.position.z = 15;
                             
                             let mouseX = 0, mouseY = 0;
