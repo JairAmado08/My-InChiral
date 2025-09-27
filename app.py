@@ -772,7 +772,7 @@ def main():
                             molSprite.scale.set(4, 1, 1);
                             scene.add(molSprite);
 
-                            camera.position.z = 15;
+                            camera.position.z = 10;
                             
                             let mouseX = 0, mouseY = 0;
                             let targetRotationX = 0, targetRotationY = 0;
