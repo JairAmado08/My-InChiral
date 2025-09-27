@@ -330,8 +330,58 @@ def main():
     # Cargar CSS personalizado
     load_custom_css()
     
-    # Título principal con estilo
-    st.markdown('<h1 class="main-title">🧬 INCHIRAL</h1>', unsafe_allow_html=True)
+    # Logo principal grande con estilo
+    st.markdown("""
+    <style>
+    .main-logo {
+        display: flex;
+        justify-content: center;
+        width: 100%;
+        margin-bottom: 2rem;
+        animation: float 3s ease-in-out infinite;
+    }
+    .main-logo img {
+        max-width: 400px;
+        height: auto;
+        border-radius: 20px;
+        box-shadow: 0 10px 30px rgba(79, 209, 199, 0.4);
+        transition: transform 0.3s ease;
+        filter: drop-shadow(0 0 20px rgba(79, 209, 199, 0.3));
+    }
+    .main-logo img:hover {
+        transform: scale(1.02);
+        box-shadow: 0 15px 40px rgba(79, 209, 199, 0.6);
+    }
+    .main-logo-fallback {
+        text-align: center;
+        animation: float 3s ease-in-out infinite;
+        margin-bottom: 2rem;
+    }
+    .main-logo-fallback .emoji {
+        font-size: 8rem;
+        margin-bottom: 1rem;
+        display: block;
+        filter: drop-shadow(0 0 20px rgba(79, 209, 199, 0.5));
+    }
+    .main-logo-fallback h1 {
+        background: linear-gradient(45deg, #4FD1C7, #63B3ED);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        font-size: 4rem;
+        font-weight: 800;
+        margin: 0;
+        text-shadow: 0 0 30px rgba(79, 209, 199, 0.5);
+    }
+    @keyframes float {
+        0%, 100% { transform: translateY(0px); }
+        50% { transform: translateY(-15px); }
+    }
+    </style>
+    <div class="main-logo">
+        <img src="https://raw.githubusercontent.com/JairAmado08/My-InChiral/main/imagenes1/inchiralucsur.png" alt="Inchiral Logo">
+    </div>
+    """, unsafe_allow_html=True)
+    
     st.markdown('<p class="subtitle">Generador Avanzado de Estereoisómeros</p>', unsafe_allow_html=True)
     
     # Sidebar mejorado
@@ -381,11 +431,22 @@ def main():
             }
             </style>
             <div class="sidebar-logo">
-                <img src="https://raw.githubusercontent.com/JairAmado08/My-InChiral/main/imagenes1/inchiralucsur.png" alt="Inchiral Logo">
+                <img src="imagenes1/inchiral final.png" alt="Inchiral Logo">
             </div>
             """,
             unsafe_allow_html=True
         )
+        
+        # Fallback si no carga la imagen local
+        try:
+            st.image("imagenes1/inchiral final.png", width=0)  # Imagen invisible para verificar si existe
+        except:
+            st.markdown("""
+            <div class="fallback-logo">
+                <span class="emoji">🧬</span>
+                <h2>INCHIRAL</h2>
+            </div>
+            """, unsafe_allow_html=True)
         
         st.markdown("---")
         
