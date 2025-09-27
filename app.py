@@ -431,7 +431,7 @@ def main():
             }
             </style>
             <div class="sidebar-logo">
-                <img src="imagenes1/inchiral final.png" alt="Inchiral Logo">
+                <img src="https://raw.githubusercontent.com/JairAmado08/My-InChiral/main/imagenes1/inchiralucsur.png" alt="Inchiral Logo">
             </div>
             """,
             unsafe_allow_html=True
