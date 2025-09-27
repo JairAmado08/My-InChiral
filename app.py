@@ -754,13 +754,14 @@ def main():
                             // Etiqueta de la molécula
                             const molCanvas = document.createElement('canvas');
                             const molContext = molCanvas.getContext('2d');
-                            molCanvas.width = 256;
-                            molCanvas.height = 64;
-                            molContext.font = '40px Arial';
+                            molCanvas.width = 512;
+                            molCanvas.height = 128;
+                            molContext.font = 'bold 36px Arial';
                             molContext.fillStyle = '#4FD1C7';
                             molContext.textAlign = 'center';
-                            molContext.fillText('Isómero {selected_idx + 1}', 128, 25);
-                            molContext.fillText('{isomeros[selected_idx]}', 128, 45);
+                            molContext.fillText('Isómero {selected_idx + 1}', 256, 50);
+                            molContext.font = 'bold 28px Arial';
+                            molContext.fillText('{isomeros[selected_idx]}', 256, 90);
                             
                             const molTexture = new THREE.CanvasTexture(molCanvas);
                             const molSpriteMaterial = new THREE.SpriteMaterial({{map: molTexture}});
@@ -769,7 +770,7 @@ def main():
                             const avgX = atoms.reduce((sum, atom) => sum + atom.x, 0) / atoms.length;
                             const avgZ = atoms.reduce((sum, atom) => sum + atom.z, 0) / atoms.length;
                             molSprite.position.set(avgX, -8, avgZ);
-                            molSprite.scale.set(4, 1, 1);
+                            molSprite.scale.set(8, 2, 1);
                             scene.add(molSprite);
 
                             camera.position.z = 10;
